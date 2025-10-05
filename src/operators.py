@@ -55,12 +55,21 @@ def assert_right_is_non_zero(func: Callable[[float, float], float]) -> Callable[
     return wrapper
 
 
+def assert_right_is_integer(func: Callable[[float, float], float]) -> Callable[[float, float], float]:
+    @wraps(func)
+    def wrapper(left: float, right: float) -> float:
+        if not right.is_integer():
+            raise OperationError(left, "", right, "операция допустима только над целым числом")
+        return func(left, right)
+    return wrapper
+
+
 _OP_MAP = {
     "+": BinaryOperator("+", ops.add),
     "-": BinaryOperator("-", ops.sub),
     "*": BinaryOperator("*", ops.mul),
     "/": BinaryOperator("/", assert_right_is_non_zero(ops.truediv)),
-    "#": BinaryOperator("//", assert_right_is_non_zero(ops.floordiv)),
-    "%": BinaryOperator("%", ops.mod),
+    "#": BinaryOperator("//", assert_right_is_non_zero(assert_right_is_integer(ops.floordiv))),
+    "%": BinaryOperator("%", assert_right_is_integer(ops.mod)),
     "^": BinaryOperator("**", ops.pow),
 }

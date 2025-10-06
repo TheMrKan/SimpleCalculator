@@ -4,7 +4,7 @@ from src.operators import BinaryOperator, OperationError
 from src.common import UserFriendlyException
 
 
-TokenizedExpression: TypeAlias = list[ForwardRef('Expression') | BinaryOperator]
+TokenizedExpression: TypeAlias = list[ForwardRef('Expression') | BinaryOperator]    # type: ignore
 
 
 class Expression:

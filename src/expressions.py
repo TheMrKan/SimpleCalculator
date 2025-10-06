@@ -83,16 +83,39 @@ class Expression:
 
     @staticmethod
     def __add_zero_if_needed(expression: str) -> str:
+        """
+        Если выражение начинается с унарного минуса/плюса, то добавляет 0 в начало, преобразуя минус/плюс в бинарный
+        для упрощения дальнейшей обработки.
+
+        Пример: -2+5 -> 0-2+5 ; +3*2 -> 0+3*2 ; 2*5 -> 2*5
+        :param expression: Строка с мат. выражением
+        :return: Входная строка с 0 в начале, если он необходим; иначе исходная строка без изменений
+        """
         if expression[0] in "+-":
             return "0" + expression
         return expression
 
     @staticmethod
     def __validate_expression_start(edge_char: str) -> bool:
+        """
+        Проверяет, может ли мат. выражение начинаться с указанного символа.
+        Если возвращает False, то мат. выражение считается некорректным
+        :param edge_char: Первый символ мат. выражения
+        :return: True, если может; иначе False
+        """
+        # проверка .isalnum() нужна для поддержки функций и переменных
+        # +- включен для унарных
         return edge_char in "-+()" or edge_char.isalnum()
 
     @staticmethod
     def __validate_expression_end(edge_char: str) -> bool:
+        """
+        Проверяет, может ли мат. выражение заканчиваться на указанный символ.
+        Если возвращает False, то мат. выражение считается некорректным
+        :param edge_char: Последний символ мат. выражения
+        :return: True, если может; иначе False
+        """
+        # проверка .isalnum() нужна для поддержки функций и переменных
         return edge_char in "()" or edge_char.isalnum()
 
     @classmethod

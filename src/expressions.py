@@ -1,10 +1,14 @@
-from typing import TypeAlias, ForwardRef
+from typing import TypeAlias, ForwardRef, Any
 
 from src.operators import BinaryOperator, OperationError
 from src.common import UserFriendlyException
 
 
 TokenizedExpression: TypeAlias = list[ForwardRef('Expression') | BinaryOperator]    # type: ignore
+
+
+class ExpressionSyntaxError(Exception):
+    pass
 
 
 class Expression:
@@ -27,14 +31,17 @@ class Expression:
 
         prepared = self.__add_zero_if_needed(prepared)
 
-        tokenized = self.__split_by_operators(prepared, "+", "-")
-        if not tokenized:
-            tokenized = self.__split_by_operators(prepared, "*", "/", "#", "%")
+        try:
+            tokenized = self.__split_by_operators(prepared, "+", "-")
             if not tokenized:
-                tokenized = self.__split_by_operators(prepared, "^")
+                tokenized = self.__split_by_operators(prepared, "*", "/", "#", "%")
+                if not tokenized:
+                    tokenized = self.__split_by_operators(prepared, "^")
+        except ExpressionSyntaxError as e:
+            raise UserFriendlyException(f"Ошибка в выражении: {self.expression}\n{str(e)}") from e
 
         if not tokenized:
-            raise ValueError(f"Не удалось прочитать выражение: {self.expression}")
+            raise UserFriendlyException(f"Неизвестное выражение: {self.expression}")
 
         try:
             return self.__execute_bin_ops(tokenized)
@@ -120,8 +127,23 @@ class Expression:
 
     @classmethod
     def __split_by_operators(cls, expression: str, *operators: str) -> TokenizedExpression | None:
+        """
+        Разделяет выражение на список с чередованием 'выражение-оператор-выражение'
+        [Expression, (Operator, Expression)+] с учетом скобок.
+        Разделение происходит только на верхнем уровне, т. е. внутри скобок разделение не будет выполнено.
+        Предполагается, что разделение выполняется по максимально приоритетным на данном этапе операторам.
+        Считается, что переданные операторы имеют равный приоритет.
+        :param expression: Строка с исходным мат. выражением
+        :param operators:
+            Символы, которые могут являться операторами при разделении.
+            Один аргумент = один символ = один оператор
+        :raises ExpressionSyntaxError: Ошибка в выражении: нарушен баланс скобок, неизвестный оператор, либо содержится недопустимое выражение
+        :return:
+            Список выражений и операторов, если удалось сделать хотя бы одно разделение;
+            иначе None, если ни одна операция не должна быть выполнена
+        """
         if not any(operators):
-            raise ValueError("Нет операторов")
+            raise ValueError("Должен быть передан хотя бы один оператор")
 
         result: TokenizedExpression = []
         current_part: list[str] = []
@@ -135,30 +157,40 @@ class Expression:
                 brackets -= 1
 
             if brackets < 0:
-                raise ValueError("Много закрывающих")
+                raise ExpressionSyntaxError("Лишние закрывающие скобки")
 
+            # проверка brackets == 0, чтобы избежать разделения внутри скобок
             if brackets == 0 and sym in operators:
                 joined = "".join(current_part)
 
                 if (not joined or not cls.__validate_expression_start(joined[0])
                         or not cls.__validate_expression_end(joined[-1])):
-                    raise ValueError(f"Некорректный ввод: {expression}")
+                    raise ExpressionSyntaxError(f"Недопустимое выражение: '{joined}'")
 
                 current_part.clear()
                 result.append(Expression(joined))
-                result.append(BinaryOperator.from_symbol(sym))
+                try:
+                    result.append(BinaryOperator.from_symbol(sym))
+                except KeyError:
+                    raise ExpressionSyntaxError(f"Неизвестный оператор: '{sym}'")
                 continue
 
             current_part.append(sym)
 
+        # случай <0 обрабатывается в цикле
+        # теоретически здесь должен оказываться только случай >0, т. е. недостаток закрывающих скобок
+        # однако для надежности проверяются оба случая
         if brackets != 0:
-            raise ValueError("Ошибка со скобками")
+            raise ExpressionSyntaxError("Имеются незакрытые скобки")
 
+        # обработка последнего куска выражения
+        # необходимо, т. к. в цикле добавление происходит при нахождении оператора, которого в конце нет
         joined = "".join(current_part)
         if not joined or not cls.__validate_expression_start(joined[0]) or not cls.__validate_expression_end(joined[-1]):
-            raise ValueError(f"Некорректный ввод: {expression}")
+            raise ExpressionSyntaxError(f"Недопустимое выражение: '{joined}'")
         result.append(Expression(joined))
 
+        # если длина 1, значит разделения не было - возвращаем None
         if len(result) > 1:
             return result
 
@@ -200,3 +232,9 @@ class Expression:
 
     def __repr__(self):
         return str(self)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Expression):
+            raise NotImplementedError(f"Compression between Expression and {type(other).__name__} is not implemented")
+
+        return self.expression == other.expression

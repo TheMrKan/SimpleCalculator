@@ -1,6 +1,14 @@
 import unittest
+from typing import Iterable
 
-from src.expressions import Expression
+from src.expressions import Expression as Ex, ExpressionSyntaxError, TokenizedExpression
+from src.operators import BinaryOperator
+
+
+bop = BinaryOperator.from_symbol
+"""
+Шорткат для BinaryOperator.from_symbol
+"""
 
 
 class TestExtraBracketsRemoval(unittest.TestCase):
@@ -14,7 +22,7 @@ class TestExtraBracketsRemoval(unittest.TestCase):
         :param arg: Аргумент, который будет передан __remove_extra_brackets
         :param result: Ожидаемый результат __remove_extra_brackets
         """
-        self.assertEqual(result, Expression._Expression__remove_extra_brackets(arg))    # type: ignore
+        self.assertEqual(result, Ex._Expression__remove_extra_brackets(arg))    # type: ignore
 
     def test_basic(self):
         self.__assert_equal("(1 + 2)", "1 + 2")
@@ -39,6 +47,49 @@ class TestExtraBracketsRemoval(unittest.TestCase):
 
     def test_wrong_brackets_configuration_2(self):
         self.__assert_equal("(((-5)(*4+3))", "(((-5)(*4+3))")
+
+
+class TestSplitByOperators(unittest.TestCase):
+
+    def __assert_equal(self, arg: str, ops: Iterable[str], result: TokenizedExpression | None):
+        self.assertEqual(result, Ex._Expression__split_by_operators(arg, *ops))    # type: ignore
+
+    def __assert_raises(self, arg: str, ops: Iterable[str], raises: type[Exception]):
+        with self.assertRaises(raises):
+            Ex._Expression__split_by_operators(arg, *ops)    # type: ignore
+
+    def test_basic(self):
+        self.__assert_equal("1+2", "+-", [Ex("1"), bop("+"), Ex("2")])
+
+    def test_multiple(self):
+        self.__assert_equal("1+2-3.2", "+-", [Ex("1"), bop("+"), Ex("2"), bop("-"), Ex("3.2")])
+
+    def test_not_matching_ops(self):
+        self.__assert_equal("1*2.456+3/4-5%6", "+-", [Ex("1*2.456"), bop("+"), Ex("3/4"), bop("-"), Ex("5%6")])
+
+    def test_brackets(self):
+        self.__assert_equal("1+(2-3.04)+4", "+-", [Ex("1"), bop("+"), Ex("(2-3.04)"), bop("+"), Ex("4")])
+
+    def test_alpha(self):
+        self.__assert_equal("1*a/bcd(3,4.1)*6", "*/", [Ex("1"), bop("*"), Ex("a"), bop("/"), Ex("bcd(3,4.1)"), bop("*"), Ex("6")])
+
+    def test_no_split(self):
+        self.__assert_equal("1*2/3.08%(4-(2+1)-(2*3))^8", "+-", None)
+
+    def test_unknown_operator(self):
+        self.__assert_raises("1&2.0", "+-&", ExpressionSyntaxError)
+
+    def test_repeated_op(self):
+        self.__assert_raises("1+-2-2.3", "+-", ExpressionSyntaxError)
+
+    def test_empty_input(self):
+        self.__assert_raises("", "+-", ExpressionSyntaxError)
+
+    def test_not_closed_brackets(self):
+        self.__assert_raises("1+2*(3+(5)-1", "+-", ExpressionSyntaxError)
+
+    def test_not_opened_brackets(self):
+        self.__assert_raises("1*(2^3)/4)^3", "*/", ExpressionSyntaxError)
 
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ class TestExtraBracketsRemoval(unittest.TestCase):
         :param arg: Аргумент, который будет передан __remove_extra_brackets
         :param result: Ожидаемый результат __remove_extra_brackets
         """
-        self.assertEqual(Expression._Expression__remove_extra_brackets(arg), result)    # type: ignore
+        self.assertEqual(result, Expression._Expression__remove_extra_brackets(arg))    # type: ignore
 
     def test_basic(self):
         self.__assert_equal("(1 + 2)", "1 + 2")
@@ -30,6 +30,15 @@ class TestExtraBracketsRemoval(unittest.TestCase):
 
     def test_real_and_fake_extra(self):
         self.__assert_equal("((-3*2)+(2+(3/2)*2))", "(-3*2)+(2+(3/2)*2)")
+
+    def test_wrong_brackets_configuration_0(self):
+        self.__assert_equal("(-2))", "(-2))")
+
+    def test_wrong_brackets_configuration_1(self):
+        self.__assert_equal("((-5*4+3)", "((-5*4+3)")
+
+    def test_wrong_brackets_configuration_2(self):
+        self.__assert_equal("(((-5)(*4+3))", "(((-5)(*4+3))")
 
 
 if __name__ == '__main__':

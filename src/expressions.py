@@ -25,7 +25,7 @@ class Expression:
         prepared = self.__remove_extra_brackets(self.expression)
 
         try:
-            return float(prepared)
+            return float(prepared.lstrip("0_"))    # lstrip убирает ведущие нули и _
         except ValueError:
             pass
 

@@ -37,6 +37,8 @@ class BinaryOperator:
         except OperationError as e:
             e.operator = self.__str_repr
             raise
+        except OverflowError as e:
+            raise OperationError(left, self.__str_repr, right, "переполнение") from e
 
     def __str__(self) -> str:
         return self.__str_repr

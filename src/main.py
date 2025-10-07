@@ -24,7 +24,8 @@ def main() -> None:
             print(e)
         except KeyboardInterrupt:
             exit()
-
+        except Exception as e:
+            print(f"Произошла непредвиденная ошибка: {type(e).__name__}('{str(e)}')")
 
 
 if __name__ == "__main__":

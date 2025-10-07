@@ -1,8 +1,14 @@
 from src.expressions import Expression
 from src.common import UserFriendlyException
+from src.name_tables import NametableManager
 
 
 class Calculator:
+
+    nt_manager: NametableManager
+
+    def __init__(self):
+        self.nt_manager = NametableManager()
 
     def execute(self, user_input: str) -> float | None:
         prepared = self.__clean(user_input)
@@ -11,8 +17,12 @@ class Calculator:
         if not prepared:
             raise UserFriendlyException("Пустой ввод")
 
+        if self.nt_manager.is_declaration(prepared):
+            self.nt_manager.declare_from_string(prepared)
+            return None
+
         expression = Expression(prepared)
-        return expression.evaluate()
+        return expression.evaluate(name_table=self.nt_manager.name_table)
 
     @staticmethod
     def __clean(user_input: str) -> str:

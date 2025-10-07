@@ -11,7 +11,7 @@ bop = BinaryOperator.from_symbol
 """
 
 
-class TestExtraBracketsRemoval(unittest.TestCase):
+class TestRemoveExtraBrackets(unittest.TestCase):
     """
     Тестирует внутреннюю функцию __remove_extra_brackets, убирающую лишние скобки из выражения (внешние)
     """
@@ -90,6 +90,30 @@ class TestSplitByOperators(unittest.TestCase):
 
     def test_not_opened_brackets(self):
         self.__assert_raises("1*(2^3)/4)^3", "*/", ExpressionSyntaxError)
+
+
+class TestExecuteBinaryOperators(unittest.TestCase):
+
+    def __assert_equal(self, arg: TokenizedExpression, result: float, reversed_execution_order: bool = False):
+        """
+        Шорткат для проверки __execute_bin_ops(arg, reversed_execution_order) == result через assertEqual
+        """
+        self.assertEqual(result, Ex._Expression__execute_bin_ops(arg, reversed_execution_order))    # type: ignore
+
+    def test_single(self):
+        self.__assert_equal([Ex("1.5"), bop("+"), Ex("2.3")], 3.8)
+
+    def test_multiple(self):
+        self.__assert_equal([Ex("2"), bop("*"), Ex("0.5"), bop("/"), Ex("2"), bop("%"), Ex("3")], 0.5)
+
+    def test_recursive(self):
+        self.__assert_equal([Ex("(2+2.5)"), bop("*"), Ex("(5#3+1)")], 9)
+
+    def test_right_associative(self):
+        self.__assert_equal([Ex("2"), bop("^"), Ex("3"), bop("^"), Ex("2")], 512, True)
+
+
+
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ class Expression:
         self.expression = expression
 
     def evaluate(self) -> float:
-        if isinstance(self.expression, float):
+        if isinstance(self.expression, (float, int)):
             return self.expression
 
         prepared = self.__remove_extra_brackets(self.expression)
@@ -31,12 +31,14 @@ class Expression:
 
         prepared = self.__add_zero_if_needed(prepared)
 
+        reversed_execution_order = False    # для правоассоциативных операторов
         try:
             tokenized = self.__split_by_operators(prepared, "+", "-")
             if not tokenized:
                 tokenized = self.__split_by_operators(prepared, "*", "/", "#", "%")
                 if not tokenized:
                     tokenized = self.__split_by_operators(prepared, "^")
+                    reversed_execution_order = True
         except ExpressionSyntaxError as e:
             raise UserFriendlyException(f"Ошибка в выражении: {self.expression}\n{str(e)}") from e
 
@@ -44,7 +46,9 @@ class Expression:
             raise UserFriendlyException(f"Неизвестное выражение: {self.expression}")
 
         try:
-            return self.__execute_bin_ops(tokenized)
+            return self.__execute_bin_ops(tokenized, reversed_execution_order)
+        except ExpressionSyntaxError as e:
+            raise UserFriendlyException(f"Ошибка вычисления выражения: {self.expression}\n{str(e)}") from e
         except OperationError as e:
             raise UserFriendlyException(f"Ошибка вычисления выражения: {self.expression}\n{str(e)}") from e
 
@@ -197,8 +201,19 @@ class Expression:
         return None
 
     @classmethod
-    def __execute_bin_ops(cls, tokenized: TokenizedExpression) -> float:
+    def __execute_bin_ops(cls, tokenized: TokenizedExpression, reversed_execution_order: bool = False) -> float:
+        """
+        Поочередно (слева направо или справа налево) применяет бинарные операторы на выражениях. Не изменяет исходное выражение.
+        В конце выполнения в стэке должно остаться одно число, которое будет возвращено функцией.
+        :param tokenized: Список токенов с чередованием 'выражение-оператор-выражение'
+        :param reversed_execution_order: False - операторы применяются слева направо. True - справа налево. (для правоассоциативных операторов)
+        :return: Числовое значение, получившееся после применения всех операторов
+        :raises ExpressionSyntaxError: Неверный порядок токенов в выражении
+        """
         stack: TokenizedExpression = []
+
+        if reversed_execution_order:
+            tokenized = reversed(tokenized)
 
         for token in tokenized:
             stack.append(token)
@@ -207,21 +222,23 @@ class Expression:
                 continue
 
             left, op, right = stack.pop(0), stack.pop(0), stack.pop(0)
+            if reversed_execution_order:
+                left, right = right, left
 
             if not isinstance(left, Expression):
-                raise ValueError(f"{left} must be an expression")
+                raise ExpressionSyntaxError(f"'{left}' должен быть выражением")
 
             if not isinstance(op, BinaryOperator):
-                raise ValueError(f"{op} must be an operator")
+                raise ExpressionSyntaxError(f"'{op}' должен быть оператором")
 
             if not isinstance(right, Expression):
-                raise ValueError(f"{right} must be an expression")
+                raise ExpressionSyntaxError(f"'{right}' должен быть выражением")
 
             val = op(left.evaluate(), right.evaluate())
             stack.insert(0, Expression(val))
 
         if len(stack) != 1:
-            raise ValueError("Недостаточно аргументов для бинарных операторов")
+            raise ExpressionSyntaxError("Неверный набор выражений")
 
         assert isinstance(stack[0], Expression)
 

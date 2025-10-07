@@ -11,12 +11,18 @@ class ExpressionSyntaxError(Exception):
     pass
 
 
+class InvalidIdentifierError(Exception):
+    pass
+
+
 class Expression:
 
     expression: str | float
+    name_table: dict
 
-    def __init__(self, expression: str | float):
+    def __init__(self, expression: str | float, name_table: dict | None = None):
         self.expression = expression
+        self.name_table = {"X": 1, "Y": 2, "Z": 3} #name_table or {}
 
     def evaluate(self) -> float:
         if isinstance(self.expression, (float, int)):
@@ -25,32 +31,72 @@ class Expression:
         prepared = self.__remove_extra_brackets(self.expression)
 
         try:
-            return float(prepared.lstrip("0_"))    # lstrip убирает ведущие нули и _
+            no_leading_zeros = prepared.lstrip("0_")    # lstrip убирает ведущие нули и _
+            if prepared and not no_leading_zeros:    # на случай, если значение 0
+                return 0
+            return float(no_leading_zeros)
         except ValueError:
             pass
 
         prepared = self.__add_zero_if_needed(prepared)
 
-        reversed_execution_order = False    # для правоассоциативных операторов
         try:
-            tokenized = self.__split_by_operators(prepared, "+", "-")
+            tokenized, reversed_execution_order = self.__try_tokenize(prepared)
             if not tokenized:
-                tokenized = self.__split_by_operators(prepared, "*", "/", "#", "%")
-                if not tokenized:
-                    tokenized = self.__split_by_operators(prepared, "^")
-                    reversed_execution_order = True
-        except ExpressionSyntaxError as e:
+                return self.__interpret_as_identifier(prepared)
+        except (ExpressionSyntaxError, InvalidIdentifierError) as e:
             raise UserFriendlyException(f"Ошибка в выражении: {self.expression}\n{str(e)}") from e
 
-        if not tokenized:
-            raise UserFriendlyException(f"Неизвестное выражение: {self.expression}")
-
         try:
-            return self.__execute_bin_ops(tokenized, reversed_execution_order)
+            return self.__execute_bin_ops(tokenized, reversed_execution_order)    # type: ignore
         except ExpressionSyntaxError as e:
             raise UserFriendlyException(f"Ошибка вычисления выражения: {self.expression}\n{str(e)}") from e
         except OperationError as e:
             raise UserFriendlyException(f"Ошибка вычисления выражения: {self.expression}\n{str(e)}") from e
+
+    def __try_tokenize(self, expression: str) -> tuple[TokenizedExpression | None, bool | None]:
+        """
+        Пытается разделить выражение по операторам одного приоритета.
+        :param expression: Строковое мат. выражение
+        :return:
+            (список выражений и операторов (см. __split_by_operators), порядок выполнения операторов)
+            Если порядок - False, то операторы применяются слева-направо, иначе справа-налево.
+            Т. е. True означает, что разбиение произошло по правоассоциативным операторам
+            Возвращает (None, None), если не удалось сделать ни одного разделения.
+        """
+        if tokenized := self.__split_by_operators(expression, "+", "-"):
+            return tokenized, False
+        if tokenized := self.__split_by_operators(expression, "*", "/", "#", "%"):
+            return tokenized, False
+        if tokenized := self.__split_by_operators(expression, "^"):
+            return tokenized, True
+
+        return None, None
+
+    def __interpret_as_identifier(self, expression: str) -> float | Any:
+        """
+        Пытается интерпретировать выражение как идентификатор (название переменной/функции).
+        Если идентификатор принадлежит переменной, то возвращает её значение.
+        Если идентификатор принадлежит функции, то вызывает её с аргументами и возвращает результат.
+        :param expression: Строковое выражение, содержащее название переменной или вызов функции.
+        :raises InvalidIdentifierError: Идентификатор не найден или используется
+        :return: Значение переменной или результат выполнения функции
+        """
+        first_open_bracket = expression.find("(")
+        identifier = expression if first_open_bracket == -1 else expression[:first_open_bracket]
+
+        try:
+            value = self.name_table[identifier]
+        except KeyError:
+            raise InvalidIdentifierError(f"Неизвестный идентификатор: {identifier}")
+
+        if first_open_bracket == -1:
+            if not isinstance(value, (float, int)):
+                raise InvalidIdentifierError(f"'{identifier}' - функция, но используется как переменная")
+            return value
+
+        raise NotImplementedError("Функции еще не реализованы")
+
 
     @staticmethod
     def __remove_extra_brackets(expression: str) -> str:
@@ -130,8 +176,7 @@ class Expression:
         # проверка .isalnum() нужна для поддержки функций и переменных
         return edge_char in "()" or edge_char.isalnum()
 
-    @classmethod
-    def __split_by_operators(cls, expression: str, *operators: str) -> TokenizedExpression | None:
+    def __split_by_operators(self, expression: str, *operators: str) -> TokenizedExpression | None:
         """
         Разделяет выражение на список с чередованием 'выражение-оператор-выражение'
         [Expression, (Operator, Expression)+] с учетом скобок.
@@ -168,12 +213,12 @@ class Expression:
             if brackets == 0 and sym in operators:
                 joined = "".join(current_part)
 
-                if (not joined or not cls.__validate_expression_start(joined[0])
-                        or not cls.__validate_expression_end(joined[-1])):
+                if (not joined or not self.__validate_expression_start(joined[0])
+                        or not self.__validate_expression_end(joined[-1])):
                     raise ExpressionSyntaxError(f"Недопустимое выражение: '{joined}'")
 
                 current_part.clear()
-                result.append(Expression(joined))
+                result.append(Expression(joined, name_table=self.name_table))
                 try:
                     result.append(BinaryOperator.from_symbol(sym))
                 except KeyError:
@@ -191,7 +236,7 @@ class Expression:
         # обработка последнего куска выражения
         # необходимо, т. к. в цикле добавление происходит при нахождении оператора, которого в конце нет
         joined = "".join(current_part)
-        if not joined or not cls.__validate_expression_start(joined[0]) or not cls.__validate_expression_end(joined[-1]):
+        if not joined or not self.__validate_expression_start(joined[0]) or not self.__validate_expression_end(joined[-1]):
             raise ExpressionSyntaxError(f"Недопустимое выражение: '{joined}'")
         result.append(Expression(joined))
 

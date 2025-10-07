@@ -104,7 +104,7 @@ class TestExecuteBinaryOperators(unittest.TestCase):
         self.__assert_equal([Ex("1.5"), bop("+"), Ex("2.3")], 3.8)
 
     def test_multiple(self):
-        self.__assert_equal([Ex("2"), bop("*"), Ex("0.5"), bop("/"), Ex("2"), bop("%"), Ex("3")], 0.5)
+        self.__assert_equal([Ex("4"), bop("*"), Ex("0.5"), bop("/"), Ex("2"), bop("%"), Ex("3")], 1)
 
     def test_recursive(self):
         self.__assert_equal([Ex("(2+2.5)"), bop("*"), Ex("(5#3+1)")], 9)

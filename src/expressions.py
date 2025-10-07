@@ -116,7 +116,8 @@ class Expression:
         """
         # проверка .isalnum() нужна для поддержки функций и переменных
         # +- включен для унарных
-        return edge_char in "-+()" or edge_char.isalnum()
+        # . для поддержки float как в python: .5
+        return edge_char in "-+()." or edge_char.isalnum()
 
     @staticmethod
     def __validate_expression_end(edge_char: str) -> bool:

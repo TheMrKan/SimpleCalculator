@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, main
 
 from src.operators import BinaryOperator as Op, OperationError
 
@@ -69,3 +69,7 @@ class TestExtra(TestCase):
     def test_overflow(self):
         with self.assertRaises(OperationError):
             Op.from_symbol("^")(6, 1000)
+
+
+if __name__ == '__main__':
+    main()

@@ -113,8 +113,5 @@ class TestExecuteBinaryOperators(unittest.TestCase):
         self.__assert_equal([Ex("2"), bop("^"), Ex("3"), bop("^"), Ex("2")], 512, True)
 
 
-
-
-
 if __name__ == '__main__':
     unittest.main()

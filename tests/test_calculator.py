@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 
 from src.calculator import Calculator
@@ -66,3 +67,7 @@ class TestCalculatorInvalidSyntax(TestCase):
     def test_wrong_brackets_2(self):
         with self.assertRaises(UserFriendlyException):
             self.calc.execute('(5 + ((1))))')
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -29,14 +29,14 @@ class NametableManager:
         Объявляет переменную из строки вида "id=12+5". Объявленная переменная добавится в name_table с вычисленным значением {"id": 17}.
         Использует Expression.evaluate для вычисления выражения.
         :param user_input: Строка, содержащая '='. Слева от '=' - идентификатор, справа - выражение.
-        :raises ValueError: Неверный синтаксис объявления
+        :raises SyntaxError: Неверный синтаксис объявления
         :raises InvalidIdentifier: Неверный идентификатор
         :raises исключения из Expression.evaluate: Ошибка при вычислении значения выражения
         """
         try:
             identifier, value_string = user_input.split("=")
-        except TypeError:
-            raise ValueError("Неверный синтаксис объявления")
+        except ValueError:
+            raise SyntaxError("Неверный синтаксис объявления")
 
         self.__assert_identifier_valid(identifier)
 

@@ -18,7 +18,11 @@ class Calculator:
             raise UserFriendlyException("Пустой ввод")
 
         if self.nt_manager.is_declaration(prepared):
-            self.nt_manager.declare_from_string(prepared)
+            try:
+                self.nt_manager.declare_from_string(prepared)
+            except Exception as e:
+                raise UserFriendlyException(f"Ошибка при объявлении переменной: {str(e)}") from e
+
             return None
 
         expression = Expression(prepared)

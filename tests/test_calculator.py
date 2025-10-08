@@ -22,7 +22,15 @@ class TestCalculatorCorrect(TestCase):
         self.assertEqual(4, self.calc.execute("-1 + (+2*3) - (-(+(-1)))"))
 
     def test_very_long(self):
+        """
+        Тестирует на очень длинной строке
+        """
         self.assertEqual(-40, self.calc.execute('-'.join(["5 + (-1)*((2+3/(2-1)))/(2-4)" for _ in range(20)])))
+
+    def test_vars(self):
+        self.calc.execute("x = 5 * 2")
+        self.calc.execute("y = x - 8")
+        self.assertEqual(24, self.calc.execute("(x + 2) * y"))
 
 
 class TestCalculatorInvalidSyntax(TestCase):

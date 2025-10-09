@@ -1,17 +1,11 @@
-import string
 import math
 
-from src.common import InvalidIdentifierError, Nametable
+from src.common import InvalidIdentifierError, Nametable, IDENTIFIER_ALLOWED_CHARACTERS
 from src.expressions import Expression
 from src.functions import Function
 
 
 class NametableManager:
-
-    ALLOWED_CHARACTERS = set(string.ascii_lowercase + string.digits + "_")
-    """
-    Символы, разрешенные для использования в идентификаторах
-    """
 
     name_table: Nametable
 
@@ -46,8 +40,8 @@ class NametableManager:
 
         self.name_table[identifier] = value
 
-    @classmethod
-    def __assert_identifier_valid(cls, identifier: str) -> None:
+    @staticmethod
+    def __assert_identifier_valid(identifier: str) -> None:
         """
         Проверяет, что строка может являться идентификатором.
         :raises InvalidIdentifierError: Строка не может являться идентификатором.
@@ -59,7 +53,7 @@ class NametableManager:
             raise InvalidIdentifierError("Идентификатор должен начинаться с буквы")
 
         for char in identifier.lower():
-            if char not in cls.ALLOWED_CHARACTERS:
+            if char not in IDENTIFIER_ALLOWED_CHARACTERS:
                 raise InvalidIdentifierError(f"Символ '{char}' не может использоваться в идентификаторе")
 
 

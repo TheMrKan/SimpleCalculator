@@ -1,4 +1,5 @@
 from typing import TypeAlias, Union, TYPE_CHECKING
+import string
 
 if TYPE_CHECKING:
     from src.functions import Function
@@ -13,6 +14,11 @@ class InvalidIdentifierError(Exception):
 
 
 Nametable: TypeAlias = dict[str, Union[float, "Function"]]
+
+IDENTIFIER_ALLOWED_CHARACTERS = set(string.ascii_lowercase + string.digits + "_")
+"""
+Символы, разрешенные для использования в идентификаторах
+"""
 
 
 def remove_extra_brackets(expression: str) -> str:

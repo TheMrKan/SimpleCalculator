@@ -1,6 +1,6 @@
-from typing import Iterator, Callable
+from typing import Iterator, Callable, Self
 
-from src.common import remove_extra_brackets
+from src.common import remove_extra_brackets, InvalidIdentifierError, IDENTIFIER_ALLOWED_CHARACTERS
 
 
 class FunctionSyntaxError(Exception):
@@ -110,9 +110,11 @@ class Function:
 
         yield arg
 
-    def __call__(self, *args) -> float:
+    def __call__(self, *args, **kwargs) -> float:
         """
         Вызывает непосредственно мат. функцию и возвращает результат.
+        **kwargs используется для передачи служебной информации и не передается в саму функцию
+        **kwargs не используется в этой реализации, но может использоваться в других (например UserDefinedFunction)
         :param args: Числовые аргументы, которые будут переданы функции
         :return: Результат выполнения функции приведенный к float
         """
@@ -124,3 +126,55 @@ class Function:
             raise FunctionExecutionError(str(e)) from e
         except Exception as e:
             raise FunctionExecutionError(str(e)) from e
+
+
+class UserDefinedFunction(Function):
+
+    @classmethod
+    def is_function_definition(cls, string: str) -> bool:
+        """
+        Проверяет, содержит ли строка определение функции.
+        :return: True, если в строке содержится определение функции; иначе False
+        """
+        return string.startswith("lambda")
+
+    @classmethod
+    def build_from_string(cls, string: str) -> Self:
+        """
+        Собирает мат. функцию (аналог lambda из Python) из строки вида "lambda(x,y,z):x+y+z"
+        :param string: Строка вида "lambda(x,y,z):x+y+z"
+        :return: Экземпляр UserDefinedFunction, при вызове которого вычисляется указанное выражение с заданными переменными
+        """
+
+        if not string.startswith("lambda"):
+            raise FunctionSyntaxError("Определение функции должно начинаться с 'lambda'")
+
+        string = string[6:]    # убирает 'lambda' в начале
+        try:
+            args_string, expression = string.split(":")
+        except ValueError:
+            raise FunctionSyntaxError("Неверный синтаксис определения функции")
+
+        args_string = args_string.strip("()")    # убирает скобки, оставляя только аргументы через запятую
+        args = args_string.split(",")    # в аргументах не может быть скобок и выражений, поэтому просто делим по запятой
+        for arg in args:
+            cls.__assert_arg_name_is_valid(arg)
+
+        # ---------------- WIP ----------------
+        raise NotImplementedError
+
+    @classmethod
+    def __assert_arg_name_is_valid(cls, arg_name: str):
+        """
+        Проверяет, что строка может являться названием аргумента функции.
+        :raises InvalidIdentifierError: Строка не может являться названием аргумента функции.
+        """
+        if not arg_name:
+            raise InvalidIdentifierError("Недопустимое пустое название аргумента")
+
+        if not arg_name[0].isalpha():
+            raise InvalidIdentifierError("Название аргумента должно начинаться с буквы")
+
+        for sym in arg_name:
+            if sym not in IDENTIFIER_ALLOWED_CHARACTERS:
+                raise InvalidIdentifierError(f"Символ '{sym}' не может использоваться в имени аргумента")

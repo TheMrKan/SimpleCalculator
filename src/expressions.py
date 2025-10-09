@@ -1,7 +1,8 @@
 from typing import TypeAlias, ForwardRef, Any
 
 from src.operators import BinaryOperator, OperationError
-from src.common import UserFriendlyException, InvalidIdentifierError, Nametable
+from src.common import UserFriendlyException, InvalidIdentifierError, Nametable, remove_extra_brackets
+from src.functions import Function, FunctionSyntaxError, FunctionExecutionError
 
 
 TokenizedExpression: TypeAlias = list[ForwardRef('Expression') | BinaryOperator]    # type: ignore
@@ -22,7 +23,7 @@ class Expression:
         if isinstance(self.expression, (float, int)):
             return self.expression
 
-        prepared = self.__remove_extra_brackets(self.expression)
+        prepared = remove_extra_brackets(self.expression)
 
         try:
             no_leading_zeros = prepared.lstrip("0_")    # lstrip убирает ведущие нули и _
@@ -40,6 +41,8 @@ class Expression:
                 return self.__interpret_as_identifier(prepared, name_table or {})
         except (ExpressionSyntaxError, InvalidIdentifierError) as e:
             raise UserFriendlyException(f"Ошибка в выражении: {self.expression}\n{str(e)}") from e
+        except (FunctionSyntaxError, FunctionExecutionError) as e:
+            raise UserFriendlyException(f"Ошибка в вызове функции: {self.expression}\n{str(e)}") from e
 
         try:
             return self.__execute_bin_ops(tokenized, reversed_execution_order, name_table)    # type: ignore
@@ -67,7 +70,8 @@ class Expression:
 
         return None, None
 
-    def __interpret_as_identifier(self, expression: str, name_table: Nametable) -> float | Any:
+    @staticmethod
+    def __interpret_as_identifier(expression: str, name_table: Nametable) -> float | Any:
         """
         Пытается интерпретировать выражение как идентификатор (название переменной/функции).
         Если идентификатор принадлежит переменной, то возвращает её значение.
@@ -76,60 +80,28 @@ class Expression:
         :raises InvalidIdentifierError: Идентификатор не найден или используется
         :return: Значение переменной или результат выполнения функции
         """
-        first_open_bracket = expression.find("(")
-        identifier = expression if first_open_bracket == -1 else expression[:first_open_bracket]
+
+        identifier, args = Function.try_parse_function_call(expression)
+        if identifier is None:
+            identifier = expression
 
         try:
-            value = name_table[identifier]
+            identifier_target = name_table[identifier]
         except KeyError:
             raise InvalidIdentifierError(f"Неизвестный идентификатор: {identifier}")
 
-        if first_open_bracket == -1:
-            if not isinstance(value, (float, int)):
-                raise InvalidIdentifierError(f"'{identifier}' - функция, но используется как переменная")
-            return value
+        if args is not None:    # вызываем функцию
+            if not isinstance(identifier_target, Function):
+                raise InvalidIdentifierError(f"'{identifier}' не является функцией")
 
-        raise NotImplementedError("Функции еще не реализованы")
+            evaluated_args = (Expression(arg).evaluate(name_table=name_table) for arg in args)
+            return identifier_target(*evaluated_args)
 
-    @staticmethod
-    def __remove_extra_brackets(expression: str) -> str:
-        """
-        Убирает все лишние (внешние) парные скобки из выражения.
-        Пример: (((-1) * 2 + 3 + (5 - 6))) -> (-1) * 2 + 3 + (5 - 6)
-        :param expression: Строка с мат. выражением
-        :return:
-            Входная строка, но без внешних скобок. Если баланс скобок не соблюден, то возвращает
-            исходное выражение без изменений
-        """
-        while True:    # цикл, т. к. может быть несколько пар скобок
-            if not expression.startswith("(") or not expression.endswith(")"):
-                return expression
+        else:    # возвращаем значение переменной
+            if not isinstance(identifier_target, (float, int)):
+                raise InvalidIdentifierError(f"'{identifier}' не может использоваться как переменная")
 
-            brackets = 0    # счетчик баланса скобок
-            for index, sym in enumerate(expression):
-                if sym == "(":
-                    brackets += 1
-                elif sym == ")":
-                    brackets -= 1
-
-                # лишняя закрывающая скобка
-                if brackets < 0:
-                    return expression
-
-                # проверяем, где закрылась первая открывающая скобка
-                if brackets == 0:
-                    # если на конце, значит их можно убрать
-                    if index == len(expression) - 1:
-                        expression = expression[1:-1]
-                        break
-                    # иначе скобка закрывается внутри выражения
-                    # более внешних скобок быть не может
-                    else:
-                        return expression
-
-            # недостаточно открывающих скобок
-            if brackets > 0:
-                return expression
+            return identifier_target
 
     @staticmethod
     def __add_zero_if_needed(expression: str) -> str:

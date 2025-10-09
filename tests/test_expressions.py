@@ -2,6 +2,7 @@ import unittest
 from typing import Iterable
 
 from src.expressions import Expression as Ex, ExpressionSyntaxError, TokenizedExpression
+from src.common import remove_extra_brackets
 from src.operators import BinaryOperator
 
 
@@ -13,16 +14,16 @@ bop = BinaryOperator.from_symbol
 
 class TestRemoveExtraBrackets(unittest.TestCase):
     """
-    Тестирует внутреннюю функцию __remove_extra_brackets, убирающую лишние скобки из выражения (внешние)
+    Тестирует внутреннюю функцию remove_extra_brackets, убирающую лишние скобки из выражения (внешние)
     """
 
     def __assert_equal(self, arg: str, result: str):
         """
         Простой шорткат для проверки вход -> выход
-        :param arg: Аргумент, который будет передан __remove_extra_brackets
-        :param result: Ожидаемый результат __remove_extra_brackets
+        :param arg: Аргумент, который будет передан remove_extra_brackets
+        :param result: Ожидаемый результат remove_extra_brackets
         """
-        self.assertEqual(result, Ex._Expression__remove_extra_brackets(arg))    # type: ignore
+        self.assertEqual(result, remove_extra_brackets(arg))    # type: ignore
 
     def test_basic(self):
         self.__assert_equal("(1 + 2)", "1 + 2")

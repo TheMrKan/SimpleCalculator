@@ -22,26 +22,27 @@ class TestVarDeclaration(unittest.TestCase):
 
     def test_basic(self):
         self.nt_manager.declare_from_string("x=2")
-        self.assertEqual({"x": 2.0}, self.nt_manager.name_table)
+        self.assertEqual(self.nt_manager.name_table["x"], 2.0)
 
     def test_expression(self):
         self.nt_manager.declare_from_string("x=2+2*2")
-        self.assertEqual({"x": 6.0}, self.nt_manager.name_table)
+        self.assertEqual(self.nt_manager.name_table["x"], 6.0)
 
     def test_multiple(self):
         self.nt_manager.declare_from_string("x=3")
         self.nt_manager.declare_from_string("y=4")
-        self.assertEqual({"x": 3.0, "y": 4.0}, self.nt_manager.name_table)
+        self.assertEqual(self.nt_manager.name_table["x"], 3.0)
+        self.assertEqual(self.nt_manager.name_table["y"], 4.0)
 
     def test_redeclaration(self):
         self.nt_manager.declare_from_string("x=3")
         self.nt_manager.declare_from_string("x=4")
-        self.assertEqual({"x": 4.0}, self.nt_manager.name_table)
+        self.assertEqual(self.nt_manager.name_table["x"], 4.0)
 
     def test_recursive(self):
         self.nt_manager.declare_from_string("x=5")
         self.nt_manager.declare_from_string("x=2*x+1/x")
-        self.assertEqual({"x": 10.2}, self.nt_manager.name_table)
+        self.assertEqual(self.nt_manager.name_table["x"], 10.2)
 
     def test_invalid_identifier(self):
         with self.assertRaises(InvalidIdentifierError):

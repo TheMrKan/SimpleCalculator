@@ -1,7 +1,9 @@
 import string
+import math
 
 from src.common import InvalidIdentifierError, Nametable
 from src.expressions import Expression
+from src.functions import Function
 
 
 class NametableManager:
@@ -14,7 +16,7 @@ class NametableManager:
     name_table: Nametable
 
     def __init__(self):
-        self.name_table = dict()
+        self.name_table = BUILTINS.copy()
 
     @staticmethod
     def is_declaration(user_input: str) -> bool:
@@ -59,3 +61,12 @@ class NametableManager:
         for char in identifier.lower():
             if char not in cls.ALLOWED_CHARACTERS:
                 raise InvalidIdentifierError(f"Символ '{char}' не может использоваться в идентификаторе")
+
+
+BUILTINS = {
+    "max": Function(max),
+    "min": Function(min),
+    "abs": Function(abs),    # type: ignore
+    "sqrt": Function(math.sqrt),    # type: ignore
+    "pow": Function(math.pow),
+}

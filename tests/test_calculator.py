@@ -32,6 +32,10 @@ class TestCalculatorCorrect(TestCase):
         self.calc.execute("y = x - 8")
         self.assertEqual(24, self.calc.execute("(x + 2) * y"))
 
+    def test_functions(self):
+        self.calc.execute("y = 15")
+        self.assertEqual(16, self.calc.execute("1 + max(abs(y), 12*0.5)"))
+
 
 class TestCalculatorInvalidSyntax(TestCase):
 

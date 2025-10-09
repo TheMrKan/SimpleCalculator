@@ -21,7 +21,7 @@ class NametableManager:
     @staticmethod
     def is_declaration(user_input: str) -> bool:
         """
-        Проверяет, является ли ввод объявленеим переменной.
+        Проверяет, является ли ввод объявлением переменной.
         :return: True, если в переданной строке объявляется переменная; иначе False.
         """
         return "=" in user_input

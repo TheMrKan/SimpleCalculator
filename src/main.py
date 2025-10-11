@@ -4,8 +4,7 @@ from src.common import UserFriendlyException
 
 def main() -> None:
     """
-    Обязательнная составляющая программ, которые сдаются. Является точкой входа в приложение
-    :return: Данная функция ничего не возвращает
+    CLI. В бесконечном цикле принимает ввод из stdin, выполняет его в Calculator, выводит результаты и возникающие исключения в stdout.
     """
 
     calculator = Calculator()

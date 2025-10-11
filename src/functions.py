@@ -1,6 +1,7 @@
-from typing import Iterator, Callable, Self
+from typing import Iterator, Callable
+from abc import ABC, abstractmethod
 
-from src.common import remove_extra_brackets, InvalidIdentifierError, IDENTIFIER_ALLOWED_CHARACTERS
+from src.common import remove_extra_brackets
 
 
 class FunctionSyntaxError(Exception):
@@ -11,15 +12,14 @@ class FunctionExecutionError(Exception):
     pass
 
 
-class Function:
+class Function(ABC):
     """
-    Обертка над мат. функциями
+    Базовый класс для мат. функций, которые пользователь может использовать в выражениях
     """
 
-    __callable: Callable[..., float]
-
-    def __init__(self, _callable: Callable[..., float]):
-        self.__callable = _callable
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
 
     @classmethod
     def try_parse_function_call(cls, expression: str) -> tuple[str | None, tuple[str, ...] | None]:
@@ -110,71 +110,29 @@ class Function:
 
         yield arg
 
-    def __call__(self, *args, **kwargs) -> float:
+
+class CodeBasedFunction(Function):
+    """
+    Мат. функция, заданная Python функцией
+    """
+    _callable: Callable[..., float]
+
+    def __init__(self, _callable: Callable[..., float]):
+        self._callable = _callable
+
+    def __call__(self, *args: float, **kwargs) -> float:
         """
-        Вызывает непосредственно мат. функцию и возвращает результат.
-        **kwargs используется для передачи служебной информации и не передается в саму функцию
-        **kwargs не используется в этой реализации, но может использоваться в других (например UserDefinedFunction)
+        Вызывает непосредственно Python функцию и возвращает результат.
+        **kwargs не используется в этой реализации
         :param args: Числовые аргументы, которые будут переданы функции
         :return: Результат выполнения функции приведенный к float
         """
+
         try:
-            return float(self.__callable(*args))
+            return float(self._callable(*args))
         except TypeError as e:
             if "argument" in str(e):
                 raise FunctionSyntaxError(f"Неверные аргументы функции: {str(e)}")
             raise FunctionExecutionError(str(e)) from e
         except Exception as e:
             raise FunctionExecutionError(str(e)) from e
-
-
-class UserDefinedFunction(Function):
-
-    @classmethod
-    def is_function_definition(cls, string: str) -> bool:
-        """
-        Проверяет, содержит ли строка определение функции.
-        :return: True, если в строке содержится определение функции; иначе False
-        """
-        return string.startswith("lambda")
-
-    @classmethod
-    def build_from_string(cls, string: str) -> Self:
-        """
-        Собирает мат. функцию (аналог lambda из Python) из строки вида "lambda(x,y,z):x+y+z"
-        :param string: Строка вида "lambda(x,y,z):x+y+z"
-        :return: Экземпляр UserDefinedFunction, при вызове которого вычисляется указанное выражение с заданными переменными
-        """
-
-        if not string.startswith("lambda"):
-            raise FunctionSyntaxError("Определение функции должно начинаться с 'lambda'")
-
-        string = string[6:]    # убирает 'lambda' в начале
-        try:
-            args_string, expression = string.split(":")
-        except ValueError:
-            raise FunctionSyntaxError("Неверный синтаксис определения функции")
-
-        args_string = args_string.strip("()")    # убирает скобки, оставляя только аргументы через запятую
-        args = args_string.split(",")    # в аргументах не может быть скобок и выражений, поэтому просто делим по запятой
-        for arg in args:
-            cls.__assert_arg_name_is_valid(arg)
-
-        # ---------------- WIP ----------------
-        raise NotImplementedError
-
-    @classmethod
-    def __assert_arg_name_is_valid(cls, arg_name: str):
-        """
-        Проверяет, что строка может являться названием аргумента функции.
-        :raises InvalidIdentifierError: Строка не может являться названием аргумента функции.
-        """
-        if not arg_name:
-            raise InvalidIdentifierError("Недопустимое пустое название аргумента")
-
-        if not arg_name[0].isalpha():
-            raise InvalidIdentifierError("Название аргумента должно начинаться с буквы")
-
-        for sym in arg_name:
-            if sym not in IDENTIFIER_ALLOWED_CHARACTERS:
-                raise InvalidIdentifierError(f"Символ '{sym}' не может использоваться в имени аргумента")

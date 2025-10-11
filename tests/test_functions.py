@@ -34,5 +34,6 @@ class TestParseFunctionCall(unittest.TestCase):
         with self.assertRaises(FunctionSyntaxError):
             Function.try_parse_function_call("func(1, 2, 3)abc")
 
+
 if __name__ == '__main__':
     unittest.main()

@@ -13,6 +13,9 @@ class ExpressionSyntaxError(Exception):
 
 
 class Expression:
+    """
+    Объект вычисляемого мат. выражения
+    """
 
     expression: str | float
 
@@ -20,6 +23,11 @@ class Expression:
         self.expression = expression
 
     def evaluate(self, name_table: Nametable | None = None) -> float:
+        """
+        Рекурсивным спуском вычисляет значение мат. выражения.
+        :param name_table: Таблица имен, через которую в выражении могут быть задействованы переменные и функции.
+        :return: Значение выражения, приведенное к float
+        """
         if isinstance(self.expression, (float, int)):
             return self.expression
 
@@ -43,6 +51,8 @@ class Expression:
             raise UserFriendlyException(f"Ошибка в выражении: {self.expression}\n{str(e)}") from e
         except (FunctionSyntaxError, FunctionExecutionError) as e:
             raise UserFriendlyException(f"Ошибка в вызове функции: {self.expression}\n{str(e)}") from e
+        except RecursionError:
+            raise
 
         try:
             return self.__execute_bin_ops(tokenized, reversed_execution_order, name_table)    # type: ignore
@@ -95,7 +105,7 @@ class Expression:
                 raise InvalidIdentifierError(f"'{identifier}' не является функцией")
 
             evaluated_args = (Expression(arg).evaluate(name_table=name_table) for arg in args)
-            return identifier_target(*evaluated_args)
+            return identifier_target(*evaluated_args, name_table=name_table)
 
         else:    # возвращаем значение переменной
             if not isinstance(identifier_target, (float, int)):

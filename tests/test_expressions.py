@@ -53,9 +53,16 @@ class TestRemoveExtraBrackets(unittest.TestCase):
 class TestSplitByOperators(unittest.TestCase):
 
     def __assert_equal(self, arg: str, ops: Iterable[str], result: TokenizedExpression | None):
+        """
+        Шорткат для проверки __split_by_operators(arg, ops) == result через assertEqual
+        """
         self.assertEqual(result, Ex._Expression__split_by_operators(arg, *ops))    # type: ignore
 
     def __assert_raises(self, arg: str, ops: Iterable[str], raises: type[Exception]):
+        """
+        Шорткат для проверки, что вызов __split_by_operators(arg, ops) вызывает исключение raises
+        :return:
+        """
         with self.assertRaises(raises):
             Ex._Expression__split_by_operators(arg, *ops)    # type: ignore
 

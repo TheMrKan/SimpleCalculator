@@ -2,7 +2,8 @@ import math
 
 from src.common import InvalidIdentifierError, Nametable, IDENTIFIER_ALLOWED_CHARACTERS
 from src.expressions import Expression
-from src.functions import Function
+from src.functions import Function, CodeBasedFunction
+from src.user_functions import UserFunctionDefiner
 
 
 class NametableManager:
@@ -36,7 +37,11 @@ class NametableManager:
 
         self.__assert_identifier_valid(identifier)
 
-        value = Expression(value_string).evaluate(name_table=self.name_table)
+        value: float | Function
+        if UserFunctionDefiner.is_function_definition(value_string):
+            value = UserFunctionDefiner.build_function_from_string(value_string)
+        else:
+            value = Expression(value_string).evaluate(name_table=self.name_table)
 
         self.name_table[identifier] = value
 
@@ -58,9 +63,9 @@ class NametableManager:
 
 
 BUILTINS = {
-    "max": Function(max),
-    "min": Function(min),
-    "abs": Function(abs),    # type: ignore
-    "sqrt": Function(math.sqrt),    # type: ignore
-    "pow": Function(math.pow),
+    "max": CodeBasedFunction(max),
+    "min": CodeBasedFunction(min),
+    "abs": CodeBasedFunction(abs),    # type: ignore
+    "sqrt": CodeBasedFunction(math.sqrt),    # type: ignore
+    "pow": CodeBasedFunction(math.pow),
 }

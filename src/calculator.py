@@ -4,6 +4,11 @@ from src.name_tables import NametableManager
 
 
 class Calculator:
+    """
+    Калькулятор)
+    Очищает пользовательский ввод, преобразует некоторые операторы.
+    Управляет объявлением переменных, которые могут быть использованы в выражении.
+    """
 
     nt_manager: NametableManager
 
@@ -11,6 +16,13 @@ class Calculator:
         self.nt_manager = NametableManager()
 
     def execute(self, user_input: str) -> float | None:
+        """
+        Обрабатывает пользовательский ввод.
+        Вычисляет значение выражения или задает значение переменной в зависимости от ввода.
+        :param user_input: Произвольная строка
+        :return: Число, если значение вычислено; None, если было успешно выполнено действие (объявлена переменная)
+        :raises UserFriendlyException: Ввод некорректен. Подробности в исключении.
+        """
         prepared = self.__clean(user_input)
         prepared = self.__translate_operators(prepared)
 
@@ -26,14 +38,23 @@ class Calculator:
             return None
 
         expression = Expression(prepared)
-        return expression.evaluate(name_table=self.nt_manager.name_table)
+        try:
+            return expression.evaluate(name_table=self.nt_manager.name_table)
+        except RecursionError:
+            raise UserFriendlyException("Достигнут лимит рекурсии")
 
     @staticmethod
     def __clean(user_input: str) -> str:
+        """
+        Убирает незначащие символы
+        """
         return user_input.strip().replace(" ", "")
 
     @staticmethod
     def __translate_operators(user_input: str) -> str:
+        """
+        Преобразует операторы к виду, с которым работают внутренние функции
+        """
         return user_input \
                 .replace("//", "#") \
                 .replace("**", "^")
